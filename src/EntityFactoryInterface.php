@@ -28,6 +28,12 @@ interface EntityFactoryInterface
     public function hydrate(object $entity, array $data): object;
 
     /**
+     * Callbacks to run before creating entities
+     * @return array
+     */
+    public function beforeCreationCallbacks(): array;
+
+    /**
      * Callbacks to run after creating entities
      * @return array
      */

@@ -87,9 +87,11 @@ class EntityBuilder
         $results = $this->make($attributes);
 
         if (is_object($results)) {
+            $this->callAfter($this->factory->beforeCreationCallbacks(), [$results]);
             $this->store([$results]);
             $this->callAfterCreating([$results]);
         } else {
+            $this->callAfter($this->factory->beforeCreationCallbacks(), $results);
             $this->store($results);
             $this->callAfterCreating($results);
         }

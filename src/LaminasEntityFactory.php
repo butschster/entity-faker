@@ -8,7 +8,9 @@ use ReflectionClass;
 
 class LaminasEntityFactory implements EntityFactoryInterface
 {
-    private array $callbacks = [];
+    private array $afterCreation = [];
+    private array $beforeCreation = [];
+
     private HydratorInterface $hydrator;
 
     public function __construct(HydratorInterface $hydrator)
@@ -39,11 +41,25 @@ class LaminasEntityFactory implements EntityFactoryInterface
      */
     public function afterCreation(callable $callback): void
     {
-        $this->callbacks[] = $callback;
+        $this->afterCreation[] = $callback;
     }
 
     public function afterCreationCallbacks(): array
     {
-        return $this->callbacks;
+        return $this->afterCreation;
+    }
+
+    /**
+     * Add a callback to run before creating an entity or array of entities.
+     * @param callable $callback
+     */
+    public function beforeCreation(callable $callback): void
+    {
+        $this->afterCreation[] = $callback;
+    }
+
+    public function beforeCreationCallbacks(): array
+    {
+        return $this->beforeCreation;
     }
 }
