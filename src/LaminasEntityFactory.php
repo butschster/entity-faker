@@ -44,6 +44,6 @@ class LaminasEntityFactory implements EntityFactoryInterface
 
     public function afterCreationCallbacks(): array
     {
-        return [];
+        return $this->callbacks;
     }
 }
