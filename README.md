@@ -5,43 +5,14 @@ This package will help you generate fake entities and persist them to your ORM.
 ```php
 <?php
 
-use Cycle\ORM\ORMInterface;
-use Cycle\ORM\TransactionInterface;
+use Butschster\EntityFaker\LaminasEntityFactory;
+use Laminas\Hydrator\ReflectionHydrator;
 use Faker\Factory as Faker;
 
-class CycleOrmEntityFactory implements \Butschster\EntityFaker\EntityFactoryInterface {
-
-    private ORMInterface $orm;
-    private TransactionInterface $transaction;
-    
-    public function __construct(ORMInterface $orm, TransactionInterface $transaction) 
-    {
-        $this->orm = $orm;
-        $this->transaction = $transaction;
-    }
-    
-    public function create(string $class): object
-    {
-        $mapper = $this->orm->getMapper($class);
-        
-        return $mapper->init([]);
-    }
-    
-    public function store(object $entity): void
-    {
-        $this->transaction->persist($entity);
-    }
-    
-    public function hydrate(object $entity, array $data) : object
-    {
-        $mapper = $this->orm->getMapper($entity);
-        
-        return $mapper->hydrate($entity, $data);
-    }
-}
-
 $factory = new \Butschster\EntityFaker\Factory(
-    new CycleOrmEntityFactory(...),
+    new LaminasEntityFactory(
+        new ReflectionHydrator()
+    ),
     Faker::create()
 );
 
@@ -186,4 +157,51 @@ $attributes = $factory->of(SuperUser::class)->raw([
     'username' => 'zetta86',
     'email' => 'test@site.com',
 ]
+```
+
+#### Custom entity builder
+You can define your own EntityBuilder class with custom persist logic.
+
+```php
+
+use Butschster\EntityFaker\EntityFactoryInterface;
+use Faker\Factory as Faker;
+use Cycle\ORM\ORMInterface;
+use Cycle\ORM\TransactionInterface;
+
+class CycleOrmEntityFactory implements EntityFactoryInterface {
+
+    private ORMInterface $orm;
+    private TransactionInterface $transaction;
+    
+    public function __construct(ORMInterface $orm, TransactionInterface $transaction) 
+    {
+        $this->orm = $orm;
+        $this->transaction = $transaction;
+    }
+    
+    public function create(string $class): object
+    {
+        $mapper = $this->orm->getMapper($class);
+        
+        return $mapper->init([]);
+    }
+    
+    public function store(object $entity): void
+    {
+        $this->transaction->persist($entity);
+    }
+    
+    public function hydrate(object $entity, array $data) : object
+    {
+        $mapper = $this->orm->getMapper($entity);
+        
+        return $mapper->hydrate($entity, $data);
+    }
+}
+
+$factory = new \Butschster\EntityFaker\Factory(
+    new CycleOrmEntityFactory(...),
+    Faker::create()
+);
 ```

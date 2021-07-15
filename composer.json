@@ -1,6 +1,12 @@
 {
   "name": "butschster/entity-faker",
   "description": "Create fake entities based on your classes",
+    "keywords": [
+        "php",
+        "faker",
+        "entity-generator",
+        "seeder"
+    ],
   "minimum-stability": "stable",
   "license": "MIT",
   "authors": [
