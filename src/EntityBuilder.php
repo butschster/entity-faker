@@ -283,6 +283,7 @@ class EntityBuilder
     public function callAfterCreating(array $entities): void
     {
         $this->callAfter($this->afterCreating, $entities);
+        $this->callAfter($this->factory->afterCreationCallbacks(), $entities);
     }
 
     /**
