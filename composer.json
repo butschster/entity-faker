@@ -1,0 +1,25 @@
+{
+  "name": "butschster/entity-faker",
+  "description": "Create fake entities based on your classes",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Pavel Buchnev",
+      "email": "butschster@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Butschster\\EntityFaker\\": "src",
+      "Butschster\\Tests\\": "tests"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.5",
+    "mockery/mockery": "^1.4",
+    "fakerphp/faker": "^1.15",
+    "php": "^7.4|^8.0",
+    "laminas/laminas-hydrator": "^4.2"
+  }
+}
