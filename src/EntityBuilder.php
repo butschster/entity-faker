@@ -87,13 +87,13 @@ class EntityBuilder
         $results = $this->make($attributes);
 
         if (is_object($results)) {
-            $this->callAfter($this->factory->beforeCreationCallbacks(), [$results]);
+            $this->callCallbacks($this->factory->beforeCreationCallbacks());
             $this->store([$results]);
-            $this->callAfterCreating([$results]);
+            $this->callCallbacks($this->factory->afterCreationCallbacks());
         } else {
-            $this->callAfter($this->factory->beforeCreationCallbacks(), $results);
+            $this->callCallbacks($this->factory->beforeCreationCallbacks());
             $this->store($results);
-            $this->callAfterCreating($results);
+            $this->callCallbacks($this->factory->afterCreationCallbacks());
         }
 
         return $results;
@@ -335,5 +335,12 @@ class EntityBuilder
     {
         return isset($this->afterMaking[$this->class][$state]) ||
             isset($this->afterCreating[$this->class][$state]);
+    }
+
+    private function callCallbacks(array $callbacks)
+    {
+        foreach ($callbacks as $callback) {
+            $callback();
+        }
     }
 }

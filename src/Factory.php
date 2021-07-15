@@ -171,4 +171,9 @@ class Factory
             call_user_func($this->definitions[$class], $this->faker), $attributes
         );
     }
+
+    public function getEntityFactory(): EntityFactoryInterface
+    {
+        return $this->entityFactory;
+    }
 }
