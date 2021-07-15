@@ -18,7 +18,7 @@ class CycleOrmEntityFactory implements \Butschster\EntityFaker\EntityFactoryInte
     {
         $this->orm = $orm;
         $this->transaction = $transaction;
-        }
+    }
     
     public function create(string $class): object
     {
@@ -85,34 +85,105 @@ $factory->define(SuperUser::class, function (Faker $faker, array $attributes) us
         'isAdmin' => $faker->boolean
     ];
 });
+```
 
-// Create and persist an entity
+
+### Create and persist an entity
+```php
 $user = $factory->of(User::class)->create();
 
-// Create and persist multiply entities
+class User {
+  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+  private string $username = "zetta86";
+  private string $email = "tsteuber@hotmail.com";
+}
+```
+
+### Create and persist multiply entities
+```php
 $users = $factory->of(User::class)->times(10)->create();
 
-// Create and persist an entity with predefined attributes
+[
+    class User {
+      private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+      private string $username = "zetta86";
+      private string $email = "tsteuber@hotmail.com";
+    },
+    ...
+]
+```
+
+### Create and persist an entity with predefined attributes
+```php
 $user = $factory->of(User::class)->create([
     'email' => 'admin@site.com'
 ]);
 
-// Create an entity
+class User {
+  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+  private string $username = "zetta86";
+  private string $email = "admin@site.com";
+}
+```
+
+### Create an entity
+```php
 $user = $factory->of(User::class)->make();
 
-// Create multiply entities
+class User {
+  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+  private string $username = "zetta86";
+  private string $email = "tsteuber@hotmail.com";
+}
+```
+
+### Create multiply entities
+```php
 $users = $factory->of(User::class)->times(10)->make();
 
-// Create an entity with predefined attributes
+[
+    class User {
+      private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+      private string $username = "zetta86";
+      private string $email = "tsteuber@hotmail.com";
+    },
+    ...
+]
+```
+
+### Create an entity with predefined attributes
+```php
 $user = $factory->of(User::class)->make([
     'email' => 'admin@site.com'
 ]);
 
-// Get raw attributes for entity
+class User {
+  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+  private string $username = "zetta86";
+  private string $email = "admin@site.com";
+}
+```
+
+### Get raw attributes for entity
+```php
 $attributes = $factory->of(SuperUser::class)->raw();
 
-// Get raw attributes for entity with predefined values
+[
+    'id' => "0b13e52d-b058-32fb-8507-10dec634a07c",
+    'username' => 'zetta86',
+    'email' => 'tsteuber@hotmail.com',
+]
+```
+
+### Get raw attributes for entity with predefined values
+```php
 $attributes = $factory->of(SuperUser::class)->raw([
     'email' => 'test@site.com'
 ]);
+
+[
+    'id' => "0b13e52d-b058-32fb-8507-10dec634a07c",
+    'username' => 'zetta86',
+    'email' => 'test@site.com',
+]
 ```
