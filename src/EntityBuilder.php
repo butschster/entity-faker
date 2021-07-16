@@ -54,6 +54,39 @@ class EntityBuilder
     }
 
     /**
+     * Export data to given directory
+     * @param string $directory
+     * @param bool $replaceIfExists
+     * @return string
+     * @throws \ReflectionException
+     */
+    public function export(string $directory, bool $replaceIfExists = true): string
+    {
+        $reflect = new \ReflectionClass($this->class);
+        $filePath = $directory . DIRECTORY_SEPARATOR . $reflect->getShortName() . '.php';
+        if (!$replaceIfExists && file_exists($filePath)) {
+            return $filePath;
+        }
+
+        $data = $this->raw();
+        if ($this->amount === null) {
+            $data = [$data];
+        }
+
+        $array = var_export($data, true);
+        $date = date('Y-m-d H:i:s');
+
+        file_put_contents($filePath, <<<EOL
+<?php
+// $date
+return $array;
+EOL
+        );
+
+        return $filePath;
+    }
+
+    /**
      * Set the state to be applied to the entity.
      * @param string $state
      * @return $this
@@ -328,7 +361,7 @@ class EntityBuilder
     /**
      * Determine if the given state has an "after" callback.
      *
-     * @param  string  $state
+     * @param string $state
      * @return bool
      */
     protected function stateHasAfterCallback(string $state): bool

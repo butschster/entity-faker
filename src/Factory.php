@@ -172,6 +172,25 @@ class Factory
         );
     }
 
+    /**
+     * Export generated data to given directory
+     *
+     * @param string $directory
+     * @param int $times
+     * @param bool $replaceIfExists
+     * @return array<string, string> Array of generated files
+     * @throws \ReflectionException
+     */
+    public function export(string $directory, int $times = 100, bool $replaceIfExists = true): array
+    {
+        $files = [];
+        foreach ($this->definitions as $class => $definition) {
+            $files[$class] = $this->of($class)->times($times)->export($directory, $replaceIfExists);
+        }
+
+        return $files;
+    }
+
     public function getEntityFactory(): EntityFactoryInterface
     {
         return $this->entityFactory;
