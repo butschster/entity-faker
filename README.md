@@ -63,25 +63,25 @@ $factory->define(SuperUser::class, function (Faker $faker, array $attributes) us
 ```php
 $user = $factory->of(User::class)->create();
 
-class User {
-  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
-  private string $username = "zetta86";
-  private string $email = "tsteuber@hotmail.com";
-}
+//class User {
+//  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+//  private string $username = "zetta86";
+//  private string $email = "tsteuber@hotmail.com";
+//}
 ```
 
 ### Create and persist multiply entities
 ```php
 $users = $factory->of(User::class)->times(10)->create();
 
-[
-    class User {
-      private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
-      private string $username = "zetta86";
-      private string $email = "tsteuber@hotmail.com";
-    },
-    ...
-]
+//[
+//    class User {
+//      private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+//      private string $username = "zetta86";
+//      private string $email = "tsteuber@hotmail.com";
+//    },
+//    ...
+//]
 ```
 
 ### Create and persist an entity with predefined attributes
@@ -90,36 +90,36 @@ $user = $factory->of(User::class)->create([
     'email' => 'admin@site.com'
 ]);
 
-class User {
-  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
-  private string $username = "zetta86";
-  private string $email = "admin@site.com";
-}
+//class User {
+//  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+//  private string $username = "zetta86";
+//  private string $email = "admin@site.com";
+//}
 ```
 
 ### Create an entity
 ```php
 $user = $factory->of(User::class)->make();
 
-class User {
-  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
-  private string $username = "zetta86";
-  private string $email = "tsteuber@hotmail.com";
-}
+//class User {
+//  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+//  private string $username = "zetta86";
+//  private string $email = "tsteuber@hotmail.com";
+//}
 ```
 
 ### Create multiply entities
 ```php
 $users = $factory->of(User::class)->times(10)->make();
 
-[
-    class User {
-      private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
-      private string $username = "zetta86";
-      private string $email = "tsteuber@hotmail.com";
-    },
-    ...
-]
+//[
+//    class User {
+//      private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+//      private string $username = "zetta86";
+//      private string $email = "tsteuber@hotmail.com";
+//    },
+//    ...
+//]
 ```
 
 ### Create an entity with predefined attributes
@@ -128,22 +128,22 @@ $user = $factory->of(User::class)->make([
     'email' => 'admin@site.com'
 ]);
 
-class User {
-  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
-  private string $username = "zetta86";
-  private string $email = "admin@site.com";
-}
+//class User {
+//  private string $id = "0b13e52d-b058-32fb-8507-10dec634a07c";
+//  private string $username = "zetta86";
+//  private string $email = "admin@site.com";
+//}
 ```
 
 ### Get raw attributes for entity
 ```php
 $attributes = $factory->of(SuperUser::class)->raw();
 
-[
-    'id' => "0b13e52d-b058-32fb-8507-10dec634a07c",
-    'username' => 'zetta86',
-    'email' => 'tsteuber@hotmail.com',
-]
+//[
+//    'id' => "0b13e52d-b058-32fb-8507-10dec634a07c",
+//    'username' => 'zetta86',
+//    'email' => 'tsteuber@hotmail.com',
+//]
 ```
 
 ### Get raw attributes for entity with predefined values
@@ -152,11 +152,27 @@ $attributes = $factory->of(SuperUser::class)->raw([
     'email' => 'test@site.com'
 ]);
 
-[
-    'id' => "0b13e52d-b058-32fb-8507-10dec634a07c",
-    'username' => 'zetta86',
-    'email' => 'test@site.com',
-]
+//[
+//    'id' => "0b13e52d-b058-32fb-8507-10dec634a07c",
+//    'username' => 'zetta86',
+//    'email' => 'test@site.com',
+//]
+```
+
+### Export array to for givent entity to php file
+```php
+// For a single entity
+$path = $factory->of(SuperUser::class)->times(1000)->export('path/to/store');
+// path/to/store/SuperUser.php
+
+
+// For all defined entities
+$patches = $factory->export('path/to/store', 1000);
+
+//[
+//    User::class => path/to/store/User.php,
+//    SuperUser::class => path/to/store/SuperUser.php,
+//];
 ```
 
 #### Custom entity builder
@@ -169,34 +185,63 @@ use Faker\Factory as Faker;
 use Cycle\ORM\ORMInterface;
 use Cycle\ORM\TransactionInterface;
 
-class CycleOrmEntityFactory implements EntityFactoryInterface {
+class CycleOrmEntityFactory implements EntityFactoryInterface 
+{
+    private array $afterCreation = [];
+    private array $beforeCreation = [];
 
-    private ORMInterface $orm;
-    private TransactionInterface $transaction;
-    
-    public function __construct(ORMInterface $orm, TransactionInterface $transaction) 
+    protected ORMInterface $orm;
+    protected Transaction $transaction;
+
+    public function __construct(ORMInterface $orm)
     {
         $this->orm = $orm;
-        $this->transaction = $transaction;
+
+        $this->beforeCreation(function () {
+            $this->transaction = new Transaction($this->orm);
+        });
+
+        $this->afterCreation(function () {
+            $this->transaction->run();
+        });
     }
-    
-    public function create(string $class): object
-    {
-        $mapper = $this->orm->getMapper($class);
-        
-        return $mapper->init([]);
-    }
-    
+
     public function store(object $entity): void
     {
         $this->transaction->persist($entity);
     }
-    
-    public function hydrate(object $entity, array $data) : object
+
+    public function hydrate(object $entity, array $data): object
     {
-        $mapper = $this->orm->getMapper($entity);
-        
-        return $mapper->hydrate($entity, $data);
+        return $this->orm->getMapper($entity)->hydrate($entity, $data);
+    }
+
+    /**
+     * Add a callback to run after creating an entity or array of entities.
+     * @param callable $callback
+     */
+    public function afterCreation(callable $callback): void
+    {
+        $this->afterCreation[] = $callback;
+    }
+
+    public function afterCreationCallbacks(): array
+    {
+        return $this->afterCreation;
+    }
+
+    /**
+     * Add a callback to run before creating an entity or array of entities.
+     * @param callable $callback
+     */
+    public function beforeCreation(callable $callback): void
+    {
+        $this->beforeCreation[] = $callback;
+    }
+
+    public function beforeCreationCallbacks(): array
+    {
+        return $this->beforeCreation;
     }
 }
 
