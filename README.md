@@ -1,5 +1,11 @@
 # Fake entities generator
 
+[![Support me on Patreon](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dbutschster%26type%3Dpatrons&style=flat)](https://patreon.com/butschster)
+[![Latest Stable Version](https://poser.pugx.org/butschster/entity-faker/v/stable)](https://packagist.org/packages/butschster/entity-faker)
+[![Build Status](https://github.com/butschster/entity-faker/actions/workflows/php.yml/badge.svg)](https://github.com/butschster/entity-faker/actions/workflows/php.yml)
+[![Total Downloads](https://poser.pugx.org/butschster/entity-faker/downloads)](https://packagist.org/packages/butschster/entity-faker)
+[![License](https://poser.pugx.org/butschster/entity-faker/license)](https://packagist.org/packages/butschster/entity-faker)
+
 This package will help you generate fake entities and persist them to your ORM.
 
 ```php
