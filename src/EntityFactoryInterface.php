@@ -16,8 +16,9 @@ interface EntityFactoryInterface
     /**
      * Place to persisting given entity
      * @param object $entity
+     * @param array $options
      */
-    public function store(object $entity): void;
+    public function store(object $entity, array $options = []): void;
 
     /**
      * Hydrate data to a given entity

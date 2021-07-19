@@ -25,7 +25,7 @@ class LaminasEntityFactory implements EntityFactoryInterface
         return $reflection->newInstanceWithoutConstructor();
     }
 
-    public function store(object $entity): void
+    public function store(object $entity, array $options = []): void
     {
         // do noting
     }
