@@ -370,7 +370,7 @@ EOL
             isset($this->afterCreating[$this->class][$state]);
     }
 
-    private function callCallbacks(array $callbacks)
+    private function callCallbacks(array $callbacks): void
     {
         foreach ($callbacks as $callback) {
             $callback();

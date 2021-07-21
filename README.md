@@ -165,20 +165,34 @@ $attributes = $factory->of(SuperUser::class)->raw([
 //]
 ```
 
-### Export array to for givent entity to php file
+### Generate array of all defined entities
 ```php
-// For a single entity
+$repository = $factory->make(1000);
+
+$seeds = $repository->get(User::class)->random(100);
+
+$seeds = $repository->get(SuperUser::class)->take(50);
+```
+
+### Generate array of raw data for all defined entities
+```php
+$repository = $factory->raw(1000);
+
+$seeds = $repository->get(User::class)->random(100);
+
+$seeds = $repository->get(SuperUser::class)->take(50);
+```
+
+### Export array of raw data to a file for given entity to php file
+```php
 $path = $factory->of(SuperUser::class)->times(1000)->export('path/to/store');
 // path/to/store/SuperUser.php
+```
 
-
-// For all defined entities
-$patches = $factory->export('path/to/store', 1000);
-
-//[
-//    User::class => path/to/store/User.php,
-//    SuperUser::class => path/to/store/SuperUser.php,
-//];
+### Export array of raw data to a files for all defined entities
+```php
+$repository = $factory->export('path/to/store', 1000);
+$seeds = $repository->get(User::class)->random(100);
 ```
 
 #### Custom entity builder

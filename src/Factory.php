@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace Butschster\EntityFaker;
 
+use Butschster\EntityFaker\Seeds\FileSeedRepository;
+use Butschster\EntityFaker\Seeds\InMemorySeedRepository;
+use Butschster\EntityFaker\Seeds\SeedRepositoryInterface;
 use Faker\Generator;
 
 class Factory
@@ -135,41 +138,36 @@ class Factory
     }
 
     /**
-     * Create an instance of the given entity and persist it
-     * @param string $class
-     * @param array $attributes
-     * @param int|null $times
-     * @return object
-     */
-    public function create(string $class, array $attributes = [], ?int $times = null): object
-    {
-        return $this->of($class)->times($times)->create($attributes);
-    }
-
-    /**
      * Create an instance of the given entity
-     * @param string $class
-     * @param array $attributes
-     * @param int|null $times
-     * @return object
+     * @param int $times
+     * @return SeedRepositoryInterface
      */
-    public function make(string $class, array $attributes = [], ?int $times = null): object
+    public function make(int $times): SeedRepositoryInterface
     {
-        return $this->of($class)->times($times)->make($attributes);
+        $data = [];
+
+        foreach ($this->definitions as $class => $definition) {
+            $data[$class] = $this->of($class)->times($times)->make();
+        }
+
+        return new InMemorySeedRepository($data);
     }
 
     /**
-     * Get the raw attribute array for a given model.
+     * Get the raw data.
      *
-     * @param string $class
-     * @param array $attributes
-     * @return array
+     * @param int $times
+     * @return SeedRepositoryInterface
      */
-    public function raw(string $class, array $attributes = []): array
+    public function raw(int $times = 100): SeedRepositoryInterface
     {
-        return array_merge(
-            call_user_func($this->definitions[$class], $this->faker), $attributes
-        );
+        $data = [];
+
+        foreach ($this->definitions as $class => $definition) {
+            $data[$class] = $this->of($class)->times($times)->raw();
+        }
+
+        return new InMemorySeedRepository($data);
     }
 
     /**
@@ -178,17 +176,17 @@ class Factory
      * @param string $directory
      * @param int $times
      * @param bool $replaceIfExists
-     * @return array<string, string> Array of generated files
+     * @return SeedRepositoryInterface
      * @throws \ReflectionException
      */
-    public function export(string $directory, int $times = 100, bool $replaceIfExists = true): array
+    public function export(string $directory, int $times = 100, bool $replaceIfExists = true): SeedRepositoryInterface
     {
         $files = [];
         foreach ($this->definitions as $class => $definition) {
             $files[$class] = $this->of($class)->times($times)->export($directory, $replaceIfExists);
         }
 
-        return $files;
+        return new FileSeedRepository($files);
     }
 
     public function getEntityFactory(): EntityFactoryInterface

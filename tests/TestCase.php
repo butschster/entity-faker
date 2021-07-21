@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Butschster\Tests;
 
+use Faker\Generator;
 use Mockery as m;
 
 abstract class TestCase extends \PHPUnit\Framework\TestCase
@@ -11,6 +12,14 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     {
         parent::tearDown();
         m::close();
+    }
+
+    protected function createFaker(): Generator
+    {
+        $faker = \Faker\Factory::create();
+        $faker->seed(1);
+
+        return $faker;
     }
 
     protected function assertUninitializedProperty(object $object, string $property)

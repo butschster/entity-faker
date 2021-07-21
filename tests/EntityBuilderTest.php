@@ -6,6 +6,7 @@ namespace Butschster\Tests;
 use Butschster\EntityFaker\EntityBuilder;
 use Butschster\EntityFaker\EntityFactoryInterface;
 use Faker\Generator;
+use InvalidArgumentException;
 use Laminas\Hydrator\ReflectionHydrator;
 use Mockery as m;
 
@@ -20,15 +21,12 @@ class EntityBuilderTest extends TestCase
     {
         parent::setUp();
 
-        $faker = \Faker\Factory::create();
-        $faker->seed(1);
-
         $this->hydrator = new ReflectionHydrator();
         $this->entityFactory = m::mock(EntityFactoryInterface::class);
 
         $this->builder = new EntityBuilder(
             $this->entityFactory,
-            $faker, EntityBuilderUser::class,
+            $this->createFaker(), EntityBuilderUser::class,
             [
                 EntityBuilderUser::class => function (Generator $faker, array $attributes) {
                     return [
@@ -37,7 +35,17 @@ class EntityBuilderTest extends TestCase
                         'email' => $faker->unique()->email
                     ];
                 }
-            ], [], [], []
+            ],
+            [
+                EntityBuilderUser::class => [
+                    'admin' => [
+                        'username' => 'admin'
+                    ],
+                    'internal' => [
+                        'email' => 'internal@site.com'
+                    ]
+                ]
+            ], [], []
         );
     }
 
@@ -46,6 +54,9 @@ class EntityBuilderTest extends TestCase
         $user = new EntityBuilderUser();
         $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
         $this->entityFactory->shouldReceive('store')->once()->with($user);
+        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
+        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
+
         $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
             return $this->hydrator->hydrate($attributes, $user);
         });
@@ -57,11 +68,61 @@ class EntityBuilderTest extends TestCase
         $this->assertEquals('tsteuber@hotmail.com', $user->getEmail());
     }
 
+    function test_creates_single_entity_with_state()
+    {
+        $user = new EntityBuilderUser();
+        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
+        $this->entityFactory->shouldReceive('store')->once()->with($user);
+        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
+        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
+
+        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
+            return $this->hydrator->hydrate($attributes, $user);
+        });
+
+        $user = $this->builder->state('admin')->create();
+
+        $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $user->getId());
+        $this->assertEquals('admin', $user->getUsername());
+        $this->assertEquals('tsteuber@hotmail.com', $user->getEmail());
+    }
+
+    function test_creates_single_entity_with_multiple_states()
+    {
+        $user = new EntityBuilderUser();
+        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
+        $this->entityFactory->shouldReceive('store')->once()->with($user);
+        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
+        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
+
+        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
+            return $this->hydrator->hydrate($attributes, $user);
+        });
+
+        $user = $this->builder->states(['admin', 'internal'])->create();
+
+        $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $user->getId());
+        $this->assertEquals('admin', $user->getUsername());
+        $this->assertEquals('internal@site.com', $user->getEmail());
+    }
+
+    function test_not_exist_state_should_throw_an_exception()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectErrorMessage('Unable to locate [test] state for [Butschster\Tests\EntityBuilderUser].');
+        $user = new EntityBuilderUser();
+        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
+
+        $this->builder->state('test')->create();
+    }
+
     function test_creates_single_entity_with_predefined_attributes()
     {
         $user = new EntityBuilderUser();
         $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
         $this->entityFactory->shouldReceive('store')->once()->with($user);
+        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
+        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
         $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
             return $this->hydrator->hydrate($attributes, $user);
         });
@@ -82,6 +143,8 @@ class EntityBuilderTest extends TestCase
         $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
             return $this->hydrator->hydrate($attributes, $user);
         });
+        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
+        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
 
         $users = $this->builder->times(3)->create();
 
@@ -109,6 +172,8 @@ class EntityBuilderTest extends TestCase
         $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
             return $this->hydrator->hydrate($attributes, $user);
         });
+        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
+        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
 
         $users = $this->builder->times(3)->create(['username' => 'admin']);
 
