@@ -66,7 +66,11 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
     public function first()
     {
-        return array_shift($this->items);
+        foreach ($this->items as $item) {
+            return $item;
+        }
+
+        return null;
     }
 
     /**
