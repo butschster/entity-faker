@@ -7,9 +7,7 @@ interface SeedRepositoryInterface
 {
     /**
      * Get seed for given entity
-     *
-     * @param string $entity
-     * @return Seeds
+     * @param class-string $entity
      */
     public function get(string $entity): Seeds;
 

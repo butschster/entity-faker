@@ -12,7 +12,7 @@ use InvalidArgumentException;
 use Mockery as m;
 use Butschster\EntityFaker\EntityFactoryInterface;
 
-class FactoryTest extends TestCase
+final class FactoryTest extends TestCase
 {
     private Factory $factory;
     private m\MockInterface $entityFactory;
@@ -27,14 +27,14 @@ class FactoryTest extends TestCase
             $this->entityFactory, $this->createFaker()
         );
 
-        $this->factory->define(FactoryTestUser::class, function (Generator $faker) {
+        $this->factory->define(FactoryTestUser::class, static function (Generator $faker) {
             return [
                 'id' => $faker->uuid,
                 'username' => $faker->userName
             ];
         });
 
-        $this->factory->define(FactoryTestComment::class, function (Generator $faker) {
+        $this->factory->define(FactoryTestComment::class, static function (Generator $faker) {
             return [
                 'id' => $faker->uuid,
                 'text' => $faker->text(30)
@@ -44,30 +44,29 @@ class FactoryTest extends TestCase
 
     function test_gets_entity_builder()
     {
-        $this->assertInstanceOf(EntityBuilder::class, $this->factory->of(FactoryTestUser::class));
-    }
-
-    function test_not_defined_class_should_throw_an_exception()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectErrorMessage('Unable to locate factory for [test].');
-
-        $this->factory->of('test')->raw();
+        $this->assertInstanceOf(
+            EntityBuilder::class,
+            $this->factory->of(FactoryTestUser::class)
+        );
     }
 
     function test_entity_for_defined_class_should_be_created()
     {
         $object = new FactoryTestUser;
         $this->entityFactory->shouldReceive('create')
-            ->once()->with(FactoryTestUser::class)->andReturn($object);
+            ->once()
+            ->with(FactoryTestUser::class, ['id' => '0b13e52d-b058-32fb-8507-10dec634a07c', 'username' => 'zetta86'])
+            ->andReturn($object);
 
-        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (object $user, array $data) {
-            foreach ($data as $key => $value) {
-                $user->{$key} = $value;
-            }
+        $this->entityFactory->shouldReceive('hydrate')
+            ->once()
+            ->andReturnUsing(function (object $user, array $data) {
+                foreach ($data as $key => $value) {
+                    $user->{$key} = $value;
+                }
 
-            return $user;
-        });
+                return $user;
+            });
 
         $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
         $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
@@ -83,7 +82,9 @@ class FactoryTest extends TestCase
     {
         $object = new FactoryTestUser;
         $this->entityFactory->shouldReceive('create')
-            ->once()->with(FactoryTestUser::class)->andReturn($object);
+            ->once()
+            ->with(FactoryTestUser::class, ['id' => '0b13e52d-b058-32fb-8507-10dec634a07c', 'username' => 'zetta86'])
+            ->andReturn($object);
 
         $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (object $user, array $data) {
             foreach ($data as $key => $value) {
@@ -101,9 +102,6 @@ class FactoryTest extends TestCase
 
     function test_not_defined_class_should_throw_an_exception_when_making()
     {
-        $this->entityFactory->shouldReceive('create')
-            ->once()->with('test')->andReturn(new \stdClass());
-
         $this->expectException(InvalidArgumentException::class);
         $this->expectErrorMessage('Unable to locate factory for [test].');
 
@@ -168,32 +166,6 @@ class FactoryTest extends TestCase
 
         $this->assertEquals('3167f744-197b-3c9b-9419-71e5daf2ea18', $comment->id);
         $this->assertEquals('Culpa ut ab voluptas sed a.', $comment->text);
-    }
-
-    function test_exports_raw_data_to_files()
-    {
-        $seeds = $this->factory->export(__DIR__ . '/runtime', 2);
-
-        $this->assertFileExists($userFile = __DIR__ . '/runtime/FactoryTestUser.php');
-        $this->assertFileExists($commentFile = __DIR__ . '/runtime/FactoryTestComment.php');
-
-        $this->assertInstanceOf(FileSeedRepository::class, $seeds);
-
-        $this->assertCount(2, $userSeed = $seeds->get(FactoryTestUser::class));
-        $this->assertCount(2, $commentSeed = $seeds->get(FactoryTestComment::class));
-
-        $this->assertEquals([
-            'id' => '0b13e52d-b058-32fb-8507-10dec634a07c',
-            'username' => 'zetta86',
-        ], $userSeed->first());
-
-        $this->assertEquals([
-            'id' => '3167f744-197b-3c9b-9419-71e5daf2ea18',
-            'text' => 'Culpa ut ab voluptas sed a.'
-        ], $commentSeed->first());
-
-        unlink($userFile);
-        unlink($commentFile);
     }
 }
 

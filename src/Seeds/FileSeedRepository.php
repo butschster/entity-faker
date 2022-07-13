@@ -6,18 +6,14 @@ namespace Butschster\EntityFaker\Seeds;
 class FileSeedRepository implements SeedRepositoryInterface
 {
     private array $data;
-    private array $classMap;
 
-    public function __construct(array $classMap)
-    {
-        $this->classMap = $classMap;
+    public function __construct(
+        private readonly array $classMap
+    ) {
     }
 
     /**
      * Get seed for given entity
-     *
-     * @param string $entity
-     * @return Seeds
      */
     public function get(string $entity): Seeds
     {

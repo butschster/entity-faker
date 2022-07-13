@@ -12,12 +12,14 @@ This package will help you generate fake entities and persist them to your ORM.
 <?php
 
 use Butschster\EntityFaker\LaminasEntityFactory;
+use Butschster\EntityFaker\EntityFactory\InstanceWithoutConstructorStrategy;
 use Laminas\Hydrator\ReflectionHydrator;
 use Faker\Factory as Faker;
 
 $factory = new \Butschster\EntityFaker\Factory(
     new LaminasEntityFactory(
-        new ReflectionHydrator()
+        new ReflectionHydrator(),
+        new InstanceWithoutConstructorStrategy()
     ),
     Faker::create()
 );
@@ -47,16 +49,14 @@ class SuperUser extends User
     }
 }
 
-$factory->define(User::class, function (Faker $faker, array $attributes) {
-    return [
+$factory->define(User::class, static fn (Faker $faker, array $attributes) => [
         'id' => $faker->uuid,
         'username' => $faker->username,
         'email' => $faker->email
-    ];
-});
+    ]);
 
-$factory->define(SuperUser::class, function (Faker $faker, array $attributes) use($factory) {
-    $userAttributes = $factory->raw(User::class);
+$factory->define(SuperUser::class, static function (Faker $faker, array $attributes) use($factory) {
+    $userAttributes = $factory->of(User::class)->raw();
     
     return $userAttributes + [
         'isAdmin' => $faker->boolean
@@ -64,8 +64,8 @@ $factory->define(SuperUser::class, function (Faker $faker, array $attributes) us
 });
 ```
 
-
 ### Create and persist an entity
+
 ```php
 $user = $factory->of(User::class)->create();
 
@@ -77,6 +77,7 @@ $user = $factory->of(User::class)->create();
 ```
 
 ### Create and persist multiply entities
+
 ```php
 $users = $factory->of(User::class)->times(10)->create();
 
@@ -91,6 +92,7 @@ $users = $factory->of(User::class)->times(10)->create();
 ```
 
 ### Create and persist an entity with predefined attributes
+
 ```php
 $user = $factory->of(User::class)->create([
     'email' => 'admin@site.com'
@@ -104,6 +106,7 @@ $user = $factory->of(User::class)->create([
 ```
 
 ### Create an entity
+
 ```php
 $user = $factory->of(User::class)->make();
 
@@ -115,6 +118,7 @@ $user = $factory->of(User::class)->make();
 ```
 
 ### Create multiply entities
+
 ```php
 $users = $factory->of(User::class)->times(10)->make();
 
@@ -129,6 +133,7 @@ $users = $factory->of(User::class)->times(10)->make();
 ```
 
 ### Create an entity with predefined attributes
+
 ```php
 $user = $factory->of(User::class)->make([
     'email' => 'admin@site.com'
@@ -142,6 +147,7 @@ $user = $factory->of(User::class)->make([
 ```
 
 ### Get raw attributes for entity
+
 ```php
 $attributes = $factory->of(SuperUser::class)->raw();
 
@@ -153,6 +159,7 @@ $attributes = $factory->of(SuperUser::class)->raw();
 ```
 
 ### Get raw attributes for entity with predefined values
+
 ```php
 $attributes = $factory->of(SuperUser::class)->raw([
     'email' => 'test@site.com'
@@ -166,6 +173,7 @@ $attributes = $factory->of(SuperUser::class)->raw([
 ```
 
 ### Generate array of all defined entities
+
 ```php
 $repository = $factory->make(1000);
 
@@ -175,6 +183,7 @@ $seeds = $repository->get(SuperUser::class)->take(50);
 ```
 
 ### Generate array of raw data for all defined entities
+
 ```php
 $repository = $factory->raw(1000);
 
@@ -183,19 +192,8 @@ $seeds = $repository->get(User::class)->random(100);
 $seeds = $repository->get(SuperUser::class)->take(50);
 ```
 
-### Export array of raw data to a file for given entity to php file
-```php
-$path = $factory->of(SuperUser::class)->times(1000)->export('path/to/store');
-// path/to/store/SuperUser.php
-```
-
-### Export array of raw data to a files for all defined entities
-```php
-$repository = $factory->export('path/to/store', 1000);
-$seeds = $repository->get(User::class)->random(100);
-```
-
 #### Custom entity builder
+
 You can define your own EntityBuilder class with custom persist logic.
 
 ```php

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Butschster\EntityFaker\Seeds;
@@ -8,18 +9,15 @@ use InvalidArgumentException;
 
 class Seeds implements \ArrayAccess, \IteratorAggregate
 {
-    private string $class;
-    private array $items;
-
-    public function __construct(string $class, array $items = [])
-    {
-        $this->class = $class;
-        $this->items = $items;
+    public function __construct(
+        /**@var class-string */
+        private readonly string $class,
+        private readonly array $items = []
+    ) {
     }
 
     /**
      * Get all of the items in the seed.
-     * @return array
      */
     public function all(): array
     {
@@ -28,9 +26,6 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
     /**
      * Execute a callback over each item.
-     *
-     * @param callable $callback
-     * @return $this
      */
     public function each(callable $callback): self
     {
@@ -45,9 +40,6 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
     /**
      * Chunk the seeds into chunks of the given size.
-     *
-     * @param int $size
-     * @return static
      */
     public function chunk(int $size): self
     {
@@ -57,14 +49,14 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
         $chunks = [];
 
-        foreach (array_chunk($this->items, $size, true) as $chunk) {
+        foreach (\array_chunk($this->items, $size, true) as $chunk) {
             $chunks[] = new static($this->class, $chunk);
         }
 
         return new static($this->class, $chunks);
     }
 
-    public function first()
+    public function first(): mixed
     {
         foreach ($this->items as $item) {
             return $item;
@@ -83,8 +75,8 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
      */
     public function random(int $number = null): self
     {
-        $requested = is_null($number) ? 1 : $number;
-        $count = count($this->items);
+        $requested = \is_null($number) ? 1 : $number;
+        $count = \count($this->items);
 
         if ($requested > $count) {
             throw new InvalidArgumentException(
@@ -92,17 +84,19 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
             );
         }
 
-        if (is_null($number)) {
-            $array = [$this->items[array_rand($this->items)]];
-        } else if ($number === 0) {
-            $array = [];
+        if (\is_null($number)) {
+            $array = [$this->items[\array_rand($this->items)]];
         } else {
-            $keys = array_rand($this->items, $number);
+            if ($number === 0) {
+                $array = [];
+            } else {
+                $keys = \array_rand($this->items, $number);
 
-            $array = [];
+                $array = [];
 
-            foreach ((array)$keys as $key) {
-                $results[] = $this->items[$key];
+                foreach ((array)$keys as $key) {
+                    $array[] = $this->items[$key];
+                }
             }
         }
 
@@ -111,28 +105,23 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
     /**
      * Reverse items order.
-     *
-     * @return static
      */
     public function reverse(): self
     {
-        return new static($this->class, array_reverse($this->items, true));
+        return new static($this->class, \array_reverse($this->items, true));
     }
 
     /**
      * Shuffle the items in the seed.
-     *
-     * @param int|null $seed
-     * @return static
      */
     public function shuffle(int $seed = null): self
     {
-        if (is_null($seed)) {
-            shuffle($this->items);
+        if (\is_null($seed)) {
+            \shuffle($this->items);
         } else {
-            mt_srand($seed);
-            shuffle($this->items);
-            mt_srand();
+            \mt_srand($seed);
+            \shuffle($this->items);
+            \mt_srand();
         }
 
         return new static($this->class, $this->items);
@@ -140,23 +129,16 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
     /**
      * Slice the underlying seed array.
-     *
-     * @param int $offset
-     * @param int|null $length
-     * @return static
      */
     public function slice(int $offset, int $length = null): self
     {
         return new static(
-            $this->class, array_slice($this->items, $offset, $length, true)
+            $this->class, \array_slice($this->items, $offset, $length, true)
         );
     }
 
     /**
      * Skip the first {$count} items.
-     *
-     * @param int $count
-     * @return static
      */
     public function skip(int $count): self
     {
@@ -165,14 +147,11 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
     /**
      * Take the first or last {$limit} items.
-     *
-     * @param int $limit
-     * @return static
      */
     public function take(int $limit): self
     {
         if ($limit < 0) {
-            return $this->slice($limit, abs($limit));
+            return $this->slice($limit, \abs($limit));
         }
 
         return $this->slice(0, $limit);
@@ -180,56 +159,49 @@ class Seeds implements \ArrayAccess, \IteratorAggregate
 
     /**
      * Get an iterator for the items.
-     *
-     * @return ArrayIterator
      */
-    public function getIterator()
+    public function getIterator(): ArrayIterator
     {
         return new ArrayIterator($this->items);
     }
 
     /**
      * Count the number of items in the seed.
-     *
-     * @return int
      */
-    public function count()
+    public function count(): int
     {
-        return count($this->items);
+        return \count($this->items);
     }
 
     /**
      * Determine if an item exists at an offset.
-     *
-     * @param int $key
-     * @return bool
      */
-    public function offsetExists($key): bool
+    public function offsetExists(mixed $offset): bool
     {
-        return isset($this->items[$key]);
+        return isset($this->items[$offset]);
     }
 
     /**
      * Get an item at a given offset.
-     *
-     * @param int $key
-     * @return array
      */
-    public function offsetGet($key)
+    public function offsetGet(mixed $offset): array
     {
-        return $this->items[$key];
+        return $this->items[$offset];
     }
 
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         // TODO: Implement offsetSet() method.
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         // TODO: Implement offsetUnset() method.
     }
 
+    /**
+     * @return class-string
+     */
     public function getClass(): string
     {
         return $this->class;

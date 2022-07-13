@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace Butschster\EntityFaker;
 
+use Butschster\EntityFaker\EntityFactory\StrategyInterface;
+use Closure;
+
 interface EntityFactoryInterface
 {
+    public function withStrategy(StrategyInterface $strategy): self;
+
     /**
      * Creating an entity based on given class
-     * @param string $class
-     * @return object
+     * @template T
+     *
+     * @param class-string<T> $class
+     * @param array<non-empty-string, mixed> $data
+     * @return T
      */
-    public function create(string $class): object;
+    public function create(string $class, array $data = []): object;
 
     /**
      * Place to persisting given entity
@@ -30,13 +38,13 @@ interface EntityFactoryInterface
 
     /**
      * Callbacks to run before creating entities
-     * @return array
+     * @return array<Closure>
      */
     public function beforeCreationCallbacks(): array;
 
     /**
      * Callbacks to run after creating entities
-     * @return array
+     * @return array<Closure>
      */
     public function afterCreationCallbacks(): array;
 }

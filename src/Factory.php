@@ -1,48 +1,57 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Butschster\EntityFaker;
 
-use Butschster\EntityFaker\Seeds\FileSeedRepository;
+use Butschster\EntityFaker\EntityFactory\StrategyInterface;
 use Butschster\EntityFaker\Seeds\InMemorySeedRepository;
 use Butschster\EntityFaker\Seeds\SeedRepositoryInterface;
+use Closure;
 use Faker\Generator;
 
 class Factory
 {
-    /** The entity definitions in the container. */
-    protected array $definitions = [];
-    /** The registered entity states. */
-    protected array $states = [];
-    /** The registered after making callbacks. */
-    protected array $afterMaking = [];
-    /** The registered after creating callbacks. */
-    protected array $afterCreating = [];
-    /** The Faker instance for the builder. */
-    protected Generator $faker;
-
-    private EntityFactoryInterface $entityFactory;
-
     /**
-     * Create a new factory instance.
-     *
-     * @param EntityFactoryInterface $entityFactory
-     * @param Generator $faker
+     * The entity definitions in the container.
      */
-    public function __construct(EntityFactoryInterface $entityFactory, Generator $faker)
+    private array $definitions = [];
+    /**
+     * The registered entity states.
+     * @var array<class-string, array<Closure>>
+     */
+    private array $states = [];
+    /**
+     * The registered after making callbacks.
+     * @var array<class-string, array<Closure>>
+     */
+    private array $afterMaking = [];
+    /**
+     * The registered after creating callbacks.
+     * @var array<class-string, array<Closure>>
+     */
+    private array $afterCreating = [];
+    /** @var array<class-string, StrategyInterface> */
+    private array $creationStrategy = [];
+
+    public function __construct(
+        private readonly EntityFactoryInterface $entityFactory,
+        private readonly Generator $faker
+    ) {
+    }
+
+    public function creationStrategy(string $class, StrategyInterface $strategy): self
     {
-        $this->faker = $faker;
-        $this->entityFactory = $entityFactory;
+        $this->creationStrategy[$class] = $strategy;
+
+        return $this;
     }
 
     /**
      * Define a class with a given set of attributes.
-     *
-     * @param string $class
-     * @param callable $attributes
-     * @return $this
+     * @param class-string $class
      */
-    public function define(string $class, callable $attributes)
+    public function define(string $class, Closure $attributes): self
     {
         $this->definitions[$class] = $attributes;
 
@@ -51,96 +60,82 @@ class Factory
 
     /**
      * Define a state with a given set of attributes.
-     *
-     * @param string $class
-     * @param string $state
-     * @param callable|array $attributes
-     * @return $this
+     * @param class-string $class
      */
-    public function state(string $class, string $state, $attributes)
+    public function state(string $class, Closure $state): self
     {
-        $this->states[$class][$state] = $attributes;
+        $this->states[$class][] = $state;
+
+        return $this;
+    }
+
+    /**
+     * Define a state with a given set of attributes.
+     * @param class-string $class
+     * @param array<Closure> $states
+     * @return Factory
+     */
+    public function states(string $class, array $states): self
+    {
+        foreach ($states as $state) {
+            $this->state($class, $state);
+        }
 
         return $this;
     }
 
     /**
      * Define a callback to run after making a model.
-     *
-     * @param string $class
-     * @param callable $callback
-     * @param string $name
-     * @return $this
+     * @param class-string $class
      */
-    public function afterMaking(string $class, callable $callback, string $name = 'default')
+    public function afterMaking(string $class, callable $callback): self
     {
-        $this->afterMaking[$class][$name][] = $callback;
+        $this->afterMaking[$class][] = $callback;
 
         return $this;
-    }
-
-    /**
-     * Define a callback to run after making a model with given state.
-     *
-     * @param string $class
-     * @param string $state
-     * @param callable $callback
-     * @return $this
-     */
-    public function afterMakingState(string $class, string $state, callable $callback)
-    {
-        return $this->afterMaking($class, $callback, $state);
     }
 
     /**
      * Define a callback to run after creating a model.
-     *
-     * @param string $class
-     * @param callable $callback
-     * @param string $name
-     * @return $this
+     * @param class-string $class
      */
-    public function afterCreating(string $class, callable $callback, string $name = 'default')
+    public function afterCreating(string $class, callable $callback): self
     {
-        $this->afterCreating[$class][$name][] = $callback;
+        $this->afterCreating[$class][] = $callback;
 
         return $this;
     }
 
     /**
-     * Define a callback to run after creating a model with given state.
-     *
-     * @param string $class
-     * @param string $state
-     * @param callable $callback
-     * @return $this
-     */
-    public function afterCreatingState(string $class, string $state, callable $callback)
-    {
-        return $this->afterCreating($class, $callback, $state);
-    }
-
-    /**
      * Create a builder for the given entity.
-     *
-     * @param string $class
-     * @return EntityBuilder
+     * @param class-string $class
      */
     public function of(string $class): EntityBuilder
     {
+        if (! isset($this->definitions[$class])) {
+            throw new \InvalidArgumentException(\sprintf('Unable to locate factory for [%s].', $class));
+        }
+
+        $factory = $this->entityFactory;
+
+        if (isset($this->creationStrategy[$class])) {
+            $factory = $factory->withStrategy($this->creationStrategy[$class]);
+        }
+
         return new EntityBuilder(
-            $this->entityFactory,
+            $factory,
             $this->faker,
             $class,
-            $this->definitions, $this->states,
-            $this->afterMaking, $this->afterCreating,
+            $this->definitions[$class] ?? static fn() => [],
+            $this->states[$class] ?? [],
+            $this->afterMaking[$class] ?? [],
+            $this->afterCreating[$class] ?? [],
         );
     }
 
     /**
      * Create an instance of the given entity
-     * @param int $times
-     * @return SeedRepositoryInterface
+     * @param positive-int $times
      */
     public function make(int $times): SeedRepositoryInterface
     {
@@ -155,9 +150,7 @@ class Factory
 
     /**
      * Get the raw data.
-     *
-     * @param int $times
-     * @return SeedRepositoryInterface
+     * @param positive-int $times
      */
     public function raw(int $times = 100): SeedRepositoryInterface
     {
@@ -168,25 +161,6 @@ class Factory
         }
 
         return new InMemorySeedRepository($data);
-    }
-
-    /**
-     * Export generated data to given directory
-     *
-     * @param string $directory
-     * @param int $times
-     * @param bool $replaceIfExists
-     * @return SeedRepositoryInterface
-     * @throws \ReflectionException
-     */
-    public function export(string $directory, int $times = 100, bool $replaceIfExists = true): SeedRepositoryInterface
-    {
-        $files = [];
-        foreach ($this->definitions as $class => $definition) {
-            $files[$class] = $this->of($class)->times($times)->export($directory, $replaceIfExists);
-        }
-
-        return new FileSeedRepository($files);
     }
 
     public function getEntityFactory(): EntityFactoryInterface

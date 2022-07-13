@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Butschster\Tests;
 
+use Butschster\EntityFaker\EntityFactory\InstanceWithoutConstructorStrategy;
 use Butschster\EntityFaker\LaminasEntityFactory;
 use Laminas\Hydrator\ReflectionHydrator;
 
@@ -15,7 +16,8 @@ class LaminasEntityFactoryTest extends TestCase
         parent::setUp();
 
         $this->entityFactory = new LaminasEntityFactory(
-            new ReflectionHydrator()
+            new ReflectionHydrator(),
+            new InstanceWithoutConstructorStrategy()
         );
     }
 
