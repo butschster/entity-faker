@@ -1,52 +1,53 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Butschster\EntityFaker;
 
+use Closure;
 use Faker\Generator as Faker;
 use InvalidArgumentException;
 
-class EntityBuilder
+final class EntityBuilder
 {
-    private Faker $faker;
-    private EntityFactoryInterface $factory;
-
-    /** The entity definitions in the container. */
-    private array $definitions;
-    /** The entity being built. */
-    private string $class;
-    /** The entity states. */
-    private array $states = [];
-    /** The entity after making callbacks. */
-    private array $afterMaking = [];
-    /** The entity after creating callbacks. */
-    private array $afterCreating = [];
-    /** The states to apply. */
-    private array $activeStates = [];
     /** The number of models to build. */
     protected ?int $amount = null;
 
     public function __construct(
-        EntityFactoryInterface $factory, Faker $faker,
-        string $class, array $definitions, array $states,
-        array $afterMaking, array $afterCreating
-    )
-    {
-        $this->factory = $factory;
-        $this->faker = $faker;
-        $this->class = $class;
-        $this->definitions = $definitions;
-        $this->states = $states;
-        $this->afterMaking = $afterMaking;
-        $this->afterCreating = $afterCreating;
+        private readonly EntityFactoryInterface $factory,
+        private readonly Faker $faker,
+        /**
+         * The entity class.
+         * @var class-string
+         */
+        private readonly string $class,
+        /**
+         * The entity definitions in the container.
+         */
+        private readonly Closure $definitions,
+        /**
+         * The entity states.
+         * @var array<Closure>
+         */
+        private readonly array $states = [],
+        /**
+         * The entity after making callbacks.
+         * @var array<Closure>
+         */
+        private readonly array $afterMaking = [],
+        /**
+         * The entity after creating callbacks.
+         * @var array<Closure>
+         */
+        private readonly array $afterCreating = []
+    ) {
     }
 
     /**
      * Set the amount of entity you wish to create / make.
-     * @param int|null $amount
-     * @return $this
+     * @param positive-int $amount
      */
-    public function times(?int $amount)
+    public function times(int $amount): self
     {
         $this->amount = $amount;
 
@@ -54,87 +55,23 @@ class EntityBuilder
     }
 
     /**
-     * Export data to given directory
-     * @param string $directory
-     * @param bool $replaceIfExists
-     * @return string
-     * @throws \ReflectionException
-     */
-    public function export(string $directory, bool $replaceIfExists = true): string
-    {
-        $reflect = new \ReflectionClass($this->class);
-        $filePath = $directory . DIRECTORY_SEPARATOR . $reflect->getShortName() . '.php';
-        if (!$replaceIfExists && file_exists($filePath)) {
-            return $filePath;
-        }
-
-        $data = $this->raw();
-        if ($this->amount === null) {
-            $data = [$data];
-        }
-
-        $array = var_export($data, true);
-        $date = date('Y-m-d H:i:s');
-
-        file_put_contents($filePath, <<<EOL
-<?php
-// $date
-return $array;
-EOL
-        );
-
-        return $filePath;
-    }
-
-    /**
-     * Set the state to be applied to the entity.
-     * @param string $state
-     * @return $this
-     */
-    public function state(string $state)
-    {
-        return $this->states([$state]);
-    }
-
-    /**
-     * Set the states to be applied to the entity.
+     * Create an array of entities and persist them to the database.
      *
-     * @param array $states
-     * @return $this
+     * @return object|array<object>
      */
-    public function states(array $states)
-    {
-        $this->activeStates = $states;
-
-        return $this;
-    }
-
-    /**
-     * Create a array of entities and persist them to the database.
-     *
-     * @param array $attributes
-     * @return object|array
-     */
-    public function create(array $attributes = [])
+    public function create(array $attributes = []): object|array
     {
         $results = $this->make($attributes);
 
-        if (is_object($results)) {
-            $this->callCallbacks($this->factory->beforeCreationCallbacks());
-            $this->store([$results]);
-            $this->callCallbacks($this->factory->afterCreationCallbacks());
-        } else {
-            $this->callCallbacks($this->factory->beforeCreationCallbacks());
-            $this->store($results);
-            $this->callCallbacks($this->factory->afterCreationCallbacks());
-        }
+        $this->callCallbacks($this->factory->beforeCreationCallbacks());
+        $this->store(\is_object($results) ? [$results] : $results);
+        $this->callCallbacks($this->factory->afterCreationCallbacks());
 
         return $results;
     }
 
     /**
      * Store entity.
-     * @param array $results
      */
     protected function store(array $results): void
     {
@@ -145,11 +82,9 @@ EOL
 
     /**
      * Create an array of entities.
-     *
-     * @param array $attributes
-     * @return array|object
+     * @return object|array<object>
      */
-    public function make(array $attributes = [])
+    public function make(array $attributes = []): object|array
     {
         if ($this->amount === null) {
             $instance = $this->makeInstance($attributes);
@@ -162,9 +97,9 @@ EOL
             return [];
         }
 
-        $instances = array_map(function () use ($attributes) {
+        $instances = \array_map(function () use ($attributes) {
             return $this->makeInstance($attributes);
-        }, range(1, $this->amount));
+        }, \range(1, $this->amount));
 
         $this->callAfterMaking($instances);
 
@@ -173,9 +108,6 @@ EOL
 
     /**
      * Create an array of raw attribute arrays.
-     *
-     * @param array $attributes
-     * @return array
      */
     public function raw(array $attributes = []): array
     {
@@ -187,45 +119,36 @@ EOL
             return [];
         }
 
-        return array_map(function () use ($attributes) {
+        return \array_map(function () use ($attributes) {
             return $this->getRawAttributes($attributes);
-        }, range(1, $this->amount));
+        }, \range(1, $this->amount));
     }
 
     /**
      * Get a raw attributes array for the entity.
      *
-     * @param array $attributes
-     * @return array
-     *
      * @throws InvalidArgumentException
      */
     protected function getRawAttributes(array $attributes = []): array
     {
-        if (!isset($this->definitions[$this->class])) {
-            throw new InvalidArgumentException("Unable to locate factory for [{$this->class}].");
-        }
-
-        $definition = call_user_func(
-            $this->definitions[$this->class],
-            $this->faker, $attributes
+        $definition = \call_user_func(
+            $this->definitions,
+            $this->faker,
+            $attributes
         );
 
         return $this->expandAttributes(
-            array_merge($this->applyStates($definition, $attributes), $attributes)
+            \array_merge($this->applyStates($definition, $attributes), $attributes)
         );
     }
 
     /**
      * Make an instance of the entity with the given attributes.
-     *
-     * @param array $attributes
-     * @return object
      */
     protected function makeInstance(array $attributes = []): object
     {
-        $instance = $this->factory->create($this->class);
         $attributes = $this->getRawAttributes($attributes);
+        $instance = $this->factory->create($this->class, $attributes);
 
         return $this->factory->hydrate($instance, $attributes);
     }
@@ -233,26 +156,14 @@ EOL
     /**
      * Apply the active states to the entity definition array.
      *
-     * @param array $definition
-     * @param array $attributes
-     * @return array
-     *
      * @throws \InvalidArgumentException
      */
     protected function applyStates(array $definition, array $attributes = []): array
     {
-        foreach ($this->activeStates as $state) {
-            if (!isset($this->states[$this->class][$state])) {
-                if ($this->stateHasAfterCallback($state)) {
-                    continue;
-                }
-
-                throw new InvalidArgumentException("Unable to locate [{$state}] state for [{$this->class}].");
-            }
-
-            $definition = array_merge(
+        foreach ($this->states as $state) {
+            $definition = \array_merge(
                 $definition,
-                $this->stateAttributes($state, $attributes)
+                $state($this->faker, $attributes)
             );
         }
 
@@ -260,33 +171,12 @@ EOL
     }
 
     /**
-     * Get the state attributes.
-     *
-     * @param string $state
-     * @param array $attributes
-     * @return array
-     */
-    protected function stateAttributes(string $state, array $attributes): array
-    {
-        $stateAttributes = $this->states[$this->class][$state];
-
-        if (!is_callable($stateAttributes)) {
-            return $stateAttributes;
-        }
-
-        return $stateAttributes($this->faker, $attributes);
-    }
-
-    /**
      * Expand all attributes to their underlying values.
-     *
-     * @param array $attributes
-     * @return array
      */
     protected function expandAttributes(array $attributes): array
     {
         foreach ($attributes as &$attribute) {
-            if (is_callable($attribute) && !is_string($attribute) && !is_array($attribute)) {
+            if (\is_callable($attribute) && ! \is_string($attribute) && ! \is_array($attribute)) {
                 $attribute = $attribute($attributes);
             }
 
@@ -300,9 +190,6 @@ EOL
 
     /**
      * Run after making callbacks on an array of entities.
-     *
-     * @param array $entities
-     * @return void
      */
     public function callAfterMaking(array $entities): void
     {
@@ -311,9 +198,6 @@ EOL
 
     /**
      * Run after creating callbacks on an array of entities.
-     *
-     * @param array $entities
-     * @return void
      */
     public function callAfterCreating(array $entities): void
     {
@@ -323,51 +207,26 @@ EOL
 
     /**
      * Call after callbacks for each entity and state.
-     *
-     * @param array $afterCallbacks
-     * @param array $entities
-     * @return void
      */
     protected function callAfter(array $afterCallbacks, array $entities): void
     {
-        $states = array_merge(['default'], $this->activeStates);
-
         foreach ($entities as $entity) {
-            foreach ($states as $state) {
-                $this->callAfterCallbacks($afterCallbacks, $entity, $state);
-            }
+            $this->callAfterCallbacks($afterCallbacks, $entity);
         }
     }
 
     /**
      * Call after callbacks for each entity and state.
-     *
-     * @param array $afterCallbacks
-     * @param object $entity
-     * @param string $state
-     * @return void
      */
-    protected function callAfterCallbacks(array $afterCallbacks, object $entity, string $state): void
+    protected function callAfterCallbacks(array $afterCallbacks, object $entity): void
     {
-        if (!isset($afterCallbacks[$this->class][$state])) {
+        if (! isset($afterCallbacks)) {
             return;
         }
 
-        foreach ($afterCallbacks[$this->class][$state] as $callback) {
+        foreach ($afterCallbacks as $callback) {
             $callback($entity, $this->faker);
         }
-    }
-
-    /**
-     * Determine if the given state has an "after" callback.
-     *
-     * @param string $state
-     * @return bool
-     */
-    protected function stateHasAfterCallback(string $state): bool
-    {
-        return isset($this->afterMaking[$this->class][$state]) ||
-            isset($this->afterCreating[$this->class][$state]);
     }
 
     private function callCallbacks(array $callbacks): void

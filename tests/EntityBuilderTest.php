@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Butschster\Tests;
@@ -6,7 +7,6 @@ namespace Butschster\Tests;
 use Butschster\EntityFaker\EntityBuilder;
 use Butschster\EntityFaker\EntityFactoryInterface;
 use Faker\Generator;
-use InvalidArgumentException;
 use Laminas\Hydrator\ReflectionHydrator;
 use Mockery as m;
 
@@ -25,124 +25,102 @@ class EntityBuilderTest extends TestCase
         $this->entityFactory = m::mock(EntityFactoryInterface::class);
 
         $this->builder = new EntityBuilder(
-            $this->entityFactory,
-            $this->createFaker(), EntityBuilderUser::class,
-            [
-                EntityBuilderUser::class => function (Generator $faker, array $attributes) {
-                    return [
-                        'id' => $faker->uuid,
-                        'username' => $faker->unique()->userName,
-                        'email' => $faker->unique()->email
-                    ];
-                }
-            ],
-            [
-                EntityBuilderUser::class => [
-                    'admin' => [
-                        'username' => 'admin'
-                    ],
-                    'internal' => [
-                        'email' => 'internal@site.com'
-                    ]
-                ]
-            ], [], []
+            factory: $this->entityFactory,
+            faker: $this->createFaker(),
+            class: EntityBuilderUser::class,
+            definitions: function (Generator $faker, array $attributes) {
+                return [
+                    'id' => $faker->uuid,
+                    'username' => $faker->unique()->userName,
+                    'email' => $faker->unique()->email,
+                ];
+            },
+            states: [
+                static fn(Generator $faker, array $attributes) => ['username' => $faker->unique()->userName],
+                static fn(Generator $faker, array $attributes) => ['email' => 'internal@site.com'],
+            ]
         );
     }
 
     function test_creates_single_entity()
     {
         $user = new EntityBuilderUser();
-        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
+        $this->entityFactory->shouldReceive('create')
+            ->once()
+            ->with(
+                EntityBuilderUser::class,
+                [
+                    'id' => '0b13e52d-b058-32fb-8507-10dec634a07c',
+                    'username' => 'lane65',
+                    'email' => 'internal@site.com',
+                ]
+            )
+            ->andReturn($user);
+
         $this->entityFactory->shouldReceive('store')->once()->with($user);
         $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
         $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
 
-        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
 
         $user = $this->builder->create();
 
         $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $user->getId());
-        $this->assertEquals('zetta86', $user->getUsername());
-        $this->assertEquals('tsteuber@hotmail.com', $user->getEmail());
-    }
-
-    function test_creates_single_entity_with_state()
-    {
-        $user = new EntityBuilderUser();
-        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
-        $this->entityFactory->shouldReceive('store')->once()->with($user);
-        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
-        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
-
-        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
-
-        $user = $this->builder->state('admin')->create();
-
-        $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $user->getId());
-        $this->assertEquals('admin', $user->getUsername());
-        $this->assertEquals('tsteuber@hotmail.com', $user->getEmail());
-    }
-
-    function test_creates_single_entity_with_multiple_states()
-    {
-        $user = new EntityBuilderUser();
-        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
-        $this->entityFactory->shouldReceive('store')->once()->with($user);
-        $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
-        $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
-
-        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
-
-        $user = $this->builder->states(['admin', 'internal'])->create();
-
-        $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $user->getId());
-        $this->assertEquals('admin', $user->getUsername());
+        $this->assertEquals('lane65', $user->getUsername());
         $this->assertEquals('internal@site.com', $user->getEmail());
-    }
-
-    function test_not_exist_state_should_throw_an_exception()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectErrorMessage('Unable to locate [test] state for [Butschster\Tests\EntityBuilderUser].');
-        $user = new EntityBuilderUser();
-        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
-
-        $this->builder->state('test')->create();
     }
 
     function test_creates_single_entity_with_predefined_attributes()
     {
         $user = new EntityBuilderUser();
-        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
+        $this->entityFactory->shouldReceive('create')
+            ->once()
+            ->with(
+                EntityBuilderUser::class,
+                [
+                    'id' => 'hello_world',
+                    'username' => 'lane65',
+                    'email' => 'internal@site.com',
+                ]
+            )
+            ->andReturn($user);
         $this->entityFactory->shouldReceive('store')->once()->with($user);
         $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
         $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
-        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
 
         $user = $this->builder->create(['id' => 'hello_world']);
 
         $this->assertEquals('hello_world', $user->getId());
-        $this->assertEquals('zetta86', $user->getUsername());
-        $this->assertEquals('tsteuber@hotmail.com', $user->getEmail());
+        $this->assertEquals('lane65', $user->getUsername());
+        $this->assertEquals('internal@site.com', $user->getEmail());
     }
 
     function test_creates_multiply_entity()
     {
-        $this->entityFactory->shouldReceive('create')->times(3)->with(EntityBuilderUser::class)->andReturnUsing(function () {
-            return new EntityBuilderUser();
-        });
+        $this->entityFactory->shouldReceive('create')
+            ->times(3)
+            ->withSomeOfArgs(EntityBuilderUser::class)
+            ->andReturnUsing(
+                function () {
+                    return new EntityBuilderUser();
+                }
+            );
+
         $this->entityFactory->shouldReceive('store')->times(3);
-        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
         $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
         $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
 
@@ -151,27 +129,33 @@ class EntityBuilderTest extends TestCase
         $this->assertCount(3, $users);
 
         $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $users[0]->getId());
-        $this->assertEquals('zetta86', $users[0]->getUsername());
-        $this->assertEquals('tsteuber@hotmail.com', $users[0]->getEmail());
+        $this->assertEquals('lane65', $users[0]->getUsername());
+        $this->assertEquals('internal@site.com', $users[0]->getEmail());
 
-        $this->assertEquals('3167f744-197b-3c9b-9419-71e5daf2ea18', $users[1]->getId());
-        $this->assertEquals('erna39', $users[1]->getUsername());
-        $this->assertEquals('herminia.hahn@gmail.com', $users[1]->getEmail());
+        $this->assertEquals('34169cbf-c877-3589-b81c-fadba6ca3c26', $users[1]->getId());
+        $this->assertEquals('mwolf', $users[1]->getUsername());
+        $this->assertEquals('internal@site.com', $users[1]->getEmail());
 
-        $this->assertEquals('a9c69793-81e3-31c5-b8ad-8d2282c7dfdb', $users[2]->getId());
-        $this->assertEquals('nikki97', $users[2]->getUsername());
-        $this->assertEquals('heloise.littel@kiehn.com', $users[2]->getEmail());
+        $this->assertEquals('d38fd91b-5e82-37da-81f2-43db057d9196', $users[2]->getId());
+        $this->assertEquals('celia68', $users[2]->getUsername());
+        $this->assertEquals('internal@site.com', $users[2]->getEmail());
     }
 
     function test_creates_multiply_entity_with_predefined_attributes()
     {
-        $this->entityFactory->shouldReceive('create')->times(3)->with(EntityBuilderUser::class)->andReturnUsing(function () {
-            return new EntityBuilderUser();
-        });
+        $this->entityFactory->shouldReceive('create')->times(3)
+            ->withSomeOfArgs(EntityBuilderUser::class)
+            ->andReturnUsing(
+                function () {
+                    return new EntityBuilderUser();
+                }
+            );
         $this->entityFactory->shouldReceive('store')->times(3);
-        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
         $this->entityFactory->shouldReceive('beforeCreationCallbacks')->once();
         $this->entityFactory->shouldReceive('afterCreationCallbacks')->once();
 
@@ -181,97 +165,121 @@ class EntityBuilderTest extends TestCase
 
         $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $users[0]->getId());
         $this->assertEquals('admin', $users[0]->getUsername());
-        $this->assertEquals('tsteuber@hotmail.com', $users[0]->getEmail());
+        $this->assertEquals('internal@site.com', $users[0]->getEmail());
 
-        $this->assertEquals('3167f744-197b-3c9b-9419-71e5daf2ea18', $users[1]->getId());
+        $this->assertEquals('34169cbf-c877-3589-b81c-fadba6ca3c26', $users[1]->getId());
         $this->assertEquals('admin', $users[1]->getUsername());
-        $this->assertEquals('herminia.hahn@gmail.com', $users[1]->getEmail());
+        $this->assertEquals('internal@site.com', $users[1]->getEmail());
 
-        $this->assertEquals('a9c69793-81e3-31c5-b8ad-8d2282c7dfdb', $users[2]->getId());
+        $this->assertEquals('d38fd91b-5e82-37da-81f2-43db057d9196', $users[2]->getId());
         $this->assertEquals('admin', $users[2]->getUsername());
-        $this->assertEquals('heloise.littel@kiehn.com', $users[2]->getEmail());
+        $this->assertEquals('internal@site.com', $users[2]->getEmail());
     }
 
     function test_makes_single_entity()
     {
         $user = new EntityBuilderUser();
-        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
-        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('create')
+            ->once()
+            ->withSomeOfArgs(EntityBuilderUser::class)
+            ->andReturn($user);
+
+        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
 
         $user = $this->builder->make();
 
         $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $user->getId());
-        $this->assertEquals('zetta86', $user->getUsername());
-        $this->assertEquals('tsteuber@hotmail.com', $user->getEmail());
+        $this->assertEquals('lane65', $user->getUsername());
+        $this->assertEquals('internal@site.com', $user->getEmail());
     }
 
     function test_makes_single_entity_with_predefined_attributes()
     {
         $user = new EntityBuilderUser();
-        $this->entityFactory->shouldReceive('create')->once()->with(EntityBuilderUser::class)->andReturn($user);
-        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('create')
+            ->once()
+            ->withSomeOfArgs(EntityBuilderUser::class)
+            ->andReturn($user);
+        $this->entityFactory->shouldReceive('hydrate')->once()->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
 
         $user = $this->builder->make(['email' => 'test@site.com']);
 
         $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $user->getId());
-        $this->assertEquals('zetta86', $user->getUsername());
+        $this->assertEquals('lane65', $user->getUsername());
         $this->assertEquals('test@site.com', $user->getEmail());
     }
 
     function test_makes_multiply_entity()
     {
-        $this->entityFactory->shouldReceive('create')->times(3)->with(EntityBuilderUser::class)->andReturnUsing(function () {
-            return new EntityBuilderUser();
-        });
-        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('create')
+            ->times(3)
+            ->withSomeOfArgs(EntityBuilderUser::class)
+            ->andReturnUsing(
+                function () {
+                    return new EntityBuilderUser();
+                }
+            );
+        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
 
         $users = $this->builder->times(3)->make();
 
         $this->assertCount(3, $users);
 
         $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $users[0]->getId());
-        $this->assertEquals('zetta86', $users[0]->getUsername());
-        $this->assertEquals('tsteuber@hotmail.com', $users[0]->getEmail());
+        $this->assertEquals('lane65', $users[0]->getUsername());
+        $this->assertEquals('internal@site.com', $users[0]->getEmail());
 
-        $this->assertEquals('3167f744-197b-3c9b-9419-71e5daf2ea18', $users[1]->getId());
-        $this->assertEquals('erna39', $users[1]->getUsername());
-        $this->assertEquals('herminia.hahn@gmail.com', $users[1]->getEmail());
+        $this->assertEquals('34169cbf-c877-3589-b81c-fadba6ca3c26', $users[1]->getId());
+        $this->assertEquals('mwolf', $users[1]->getUsername());
+        $this->assertEquals('internal@site.com', $users[1]->getEmail());
 
-        $this->assertEquals('a9c69793-81e3-31c5-b8ad-8d2282c7dfdb', $users[2]->getId());
-        $this->assertEquals('nikki97', $users[2]->getUsername());
-        $this->assertEquals('heloise.littel@kiehn.com', $users[2]->getEmail());
+        $this->assertEquals('d38fd91b-5e82-37da-81f2-43db057d9196', $users[2]->getId());
+        $this->assertEquals('celia68', $users[2]->getUsername());
+        $this->assertEquals('internal@site.com', $users[2]->getEmail());
     }
 
     function test_makes_multiply_entity_with_predefined_attributes()
     {
-        $this->entityFactory->shouldReceive('create')->times(3)->with(EntityBuilderUser::class)->andReturnUsing(function () {
-            return new EntityBuilderUser();
-        });
+        $this->entityFactory->shouldReceive('create')
+            ->times(3)
+            ->withSomeOfArgs(EntityBuilderUser::class)->andReturnUsing(
+                function () {
+                    return new EntityBuilderUser();
+                }
+            );
 
-        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(function (EntityBuilderUser $user, array $attributes) {
-            return $this->hydrator->hydrate($attributes, $user);
-        });
+        $this->entityFactory->shouldReceive('hydrate')->times(3)->andReturnUsing(
+            function (EntityBuilderUser $user, array $attributes) {
+                return $this->hydrator->hydrate($attributes, $user);
+            }
+        );
 
         $users = $this->builder->times(3)->make(['email' => 'test@site.com']);
 
         $this->assertCount(3, $users);
 
         $this->assertEquals('0b13e52d-b058-32fb-8507-10dec634a07c', $users[0]->getId());
-        $this->assertEquals('zetta86', $users[0]->getUsername());
+        $this->assertEquals('lane65', $users[0]->getUsername());
         $this->assertEquals('test@site.com', $users[0]->getEmail());
 
-        $this->assertEquals('3167f744-197b-3c9b-9419-71e5daf2ea18', $users[1]->getId());
-        $this->assertEquals('erna39', $users[1]->getUsername());
+        $this->assertEquals('34169cbf-c877-3589-b81c-fadba6ca3c26', $users[1]->getId());
+        $this->assertEquals('mwolf', $users[1]->getUsername());
         $this->assertEquals('test@site.com', $users[1]->getEmail());
 
-        $this->assertEquals('a9c69793-81e3-31c5-b8ad-8d2282c7dfdb', $users[2]->getId());
-        $this->assertEquals('nikki97', $users[2]->getUsername());
+        $this->assertEquals('d38fd91b-5e82-37da-81f2-43db057d9196', $users[2]->getId());
+        $this->assertEquals('celia68', $users[2]->getUsername());
         $this->assertEquals('test@site.com', $users[2]->getEmail());
     }
 
@@ -279,8 +287,8 @@ class EntityBuilderTest extends TestCase
     {
         $this->assertEquals([
             'id' => '0b13e52d-b058-32fb-8507-10dec634a07c',
-            'username' => 'zetta86',
-            'email' => 'tsteuber@hotmail.com'
+            'username' => 'lane65',
+            'email' => 'internal@site.com',
         ], $this->builder->raw());
     }
 
@@ -289,19 +297,19 @@ class EntityBuilderTest extends TestCase
         $this->assertEquals([
             [
                 'id' => '0b13e52d-b058-32fb-8507-10dec634a07c',
-                'username' => 'zetta86',
-                'email' => 'tsteuber@hotmail.com'
+                'username' => 'lane65',
+                'email' => 'internal@site.com',
             ],
             [
-                'id' => '3167f744-197b-3c9b-9419-71e5daf2ea18',
-                'username' => 'erna39',
-                'email' => 'herminia.hahn@gmail.com'
+                'id' => '34169cbf-c877-3589-b81c-fadba6ca3c26',
+                'username' => 'mwolf',
+                'email' => 'internal@site.com',
             ],
             [
-                'id' => 'a9c69793-81e3-31c5-b8ad-8d2282c7dfdb',
-                'username' => 'nikki97',
-                'email' => 'heloise.littel@kiehn.com'
-            ]
+                'id' => 'd38fd91b-5e82-37da-81f2-43db057d9196',
+                'username' => 'celia68',
+                'email' => 'internal@site.com',
+            ],
         ], $this->builder->times(3)->raw());
     }
 }
